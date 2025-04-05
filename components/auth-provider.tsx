@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const getSiweMessage = async () => {
     try {
-      const response = await fetch('http://localhost:8000/auth/get_siwe_message', {
+      const response = await fetch('https://api-catkin-network-794553318193.asia-east1.run.app/auth/get_siwe_message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const signature = await signMessageAsync({ message: messageToSign });
       
       // 驗證簽名並獲取JWT
-      const response = await fetch('http://localhost:8000/auth/verify_siwe', {
+      const response = await fetch('https://api-catkin-network-794553318193.asia-east1.run.app/auth/verify_siwe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
