@@ -1,13 +1,15 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { MainLayout } from "@/components/layout/main-layout"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react";
+import type React from "react";
+import Image from "next/image";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -16,85 +18,136 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Plus, Pencil, Trash2, ImageIcon } from "lucide-react"
-import Image from "next/image"
-
-// Mock data for items
-const initialItems = [
-  {
-    id: "1",
-    title: "Premium Subscription",
-    description: "Monthly access to all premium features",
-    price: "29.99",
-    image: "/placeholder.svg?height=100&width=100",
-    network: "Ethereum",
-    token: "ETH",
-  },
-  {
-    id: "2",
-    title: "Basic Package",
-    description: "Entry level package with core features",
-    price: "9.99",
-    image: "/placeholder.svg?height=100&width=100",
-    network: "Polygon",
-    token: "MATIC",
-  },
-  {
-    id: "3",
-    title: "Enterprise Solution",
-    description: "Full-featured solution for businesses",
-    price: "99.99",
-    image: "/placeholder.svg?height=100&width=100",
-    network: "Optimism",
-    token: "ETH",
-  },
-]
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Plus, Trash2, Pencil, ImageIcon } from "lucide-react";
+import { MainLayout } from "@/components/layout/main-layout";
 
 interface Item {
-  id: string
-  title: string
-  description: string
-  price: string
-  image: string
-  network: string
-  token: string
+  id: string;
+  title: string;
+  description: string;
+  price: string;
+  image: string;
 }
 
 export default function ItemsPage() {
-  const [items, setItems] = useState<Item[]>(initialItems)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [currentItem, setCurrentItem] = useState<Item | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [items, setItems] = useState<Item[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState<Item | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // ✅ 取得我的商品
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const token = localStorage.getItem("token") || "";
+      const res = await fetch(
+        "https://api.catkin.network/product/my-products",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = data.map((item: any) => ({
+          id: item.id.toString(),
+          title: item.title,
+          description: item.description ?? "",
+          price: item.price.toString(),
+          image: item.image_uri ?? "/placeholder.svg",
+        }));
+        setItems(formatted);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  // ✅ 新增/修改商品
+  const handleAddOrUpdateItem = async (item: Item) => {
+    const token = localStorage.getItem("token") || "";
+    const isEdit = Boolean(item.id);
+
+    const endpoint = isEdit
+      ? `https://api.catkin.network/product/product/${item.id}`
+      : "https://api.catkin.network/product/product";
+
+    const method = isEdit ? "PUT" : "POST";
+
+    try {
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: item.title,
+          description: item.description,
+          price: parseFloat(item.price),
+          image_uri: item.image,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save product");
+
+      const data = await response.json();
+      if (isEdit) {
+        setItems(items.map((i) => (i.id === item.id ? { ...item } : i)));
+      } else {
+        setItems([...items, { ...item, id: data.id.toString() }]);
+      }
+      setIsDialogOpen(false);
+      setCurrentItem(null);
+    } catch (err) {
+      console.error("Error saving product:", err);
+      alert("儲存商品失敗");
+    }
+  };
+
+  // ❌ 刪除商品
+  const handleDeleteItem = async (id: string) => {
+    const token = localStorage.getItem("token") || "";
+    const confirmed = confirm("確定要刪除這個商品嗎？");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(
+        `https://api.catkin.network/product/product/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Delete failed");
+      setItems(items.filter((item) => item.id !== id));
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("刪除商品失敗");
+    }
+  };
 
   const filteredItems = items.filter(
     (item) =>
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
-
-  const handleAddOrUpdateItem = (item: Item) => {
-    if (currentItem) {
-      // Update existing item
-      setItems(items.map((i) => (i.id === item.id ? item : i)))
-    } else {
-      // Add new item
-      setItems([...items, { ...item, id: Date.now().toString() }])
-    }
-    setIsDialogOpen(false)
-    setCurrentItem(null)
-  }
-
-  const handleDeleteItem = (id: string) => {
-    setItems(items.filter((item) => item.id !== id))
-  }
-
-  const handleEditItem = (item: Item) => {
-    setCurrentItem(item)
-    setIsDialogOpen(true)
-  }
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <MainLayout>
@@ -119,7 +172,9 @@ export default function ItemsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Items</CardTitle>
-          <CardDescription>Create and manage items that customers can purchase</CardDescription>
+          <CardDescription>
+            Manage items your customers can purchase
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -138,15 +193,13 @@ export default function ItemsPage() {
                   <TableHead>Title</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead>Network</TableHead>
-                  <TableHead>Token</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={5} className="text-center h-24">
                       No items found.
                     </TableCell>
                   </TableRow>
@@ -163,22 +216,27 @@ export default function ItemsPage() {
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">{item.title}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{item.description}</TableCell>
+                      <TableCell>{item.title}</TableCell>
+                      <TableCell>{item.description}</TableCell>
                       <TableCell>${item.price}</TableCell>
-                      <TableCell>{item.network}</TableCell>
-                      <TableCell>{item.token}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)}>
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)}>
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </div>
+                      <TableCell className="text-right flex gap-2 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setCurrentItem(item);
+                            setIsDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -189,13 +247,13 @@ export default function ItemsPage() {
         </CardContent>
       </Card>
     </MainLayout>
-  )
+  );
 }
 
 interface ItemFormProps {
-  initialItem: Item | null
-  onSubmit: (item: Item) => void
-  onCancel: () => void
+  initialItem: Item | null;
+  onSubmit: (item: Item) => void;
+  onCancel: () => void;
 }
 
 function ItemForm({ initialItem, onSubmit, onCancel }: ItemFormProps) {
@@ -205,120 +263,73 @@ function ItemForm({ initialItem, onSubmit, onCancel }: ItemFormProps) {
       title: "",
       description: "",
       price: "",
-      image: "/placeholder.svg?height=100&width=100",
-      network: "Ethereum",
-      token: "ETH",
-    },
-  )
+      image: "/placeholder.svg",
+    }
+  );
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setItem({ ...item, [name]: value })
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(item)
-  }
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setItem({ ...item, [name]: value });
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      // In a real app, you would upload this to a storage service
-      // For now, we'll just create a local URL
-      const imageUrl = URL.createObjectURL(file)
-      setItem({ ...item, image: imageUrl })
+      const url = URL.createObjectURL(file);
+      setItem({ ...item, image: url });
     }
-  }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(item);
+  };
 
   return (
     <form onSubmit={handleSubmit}>
       <DialogHeader>
         <DialogTitle>{initialItem ? "Edit Item" : "Add New Item"}</DialogTitle>
         <DialogDescription>
-          {initialItem ? "Update the details of your item." : "Create a new item for your customers to purchase."}
+          {initialItem
+            ? "Update your product information"
+            : "Create a new product for your customers."}
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="title" className="text-right">
-            Title
-          </Label>
-          <Input id="title" name="title" value={item.title} onChange={handleChange} className="col-span-3" required />
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="description" className="text-right">
-            Description
-          </Label>
-          <Textarea
-            id="description"
-            name="description"
-            value={item.description}
-            onChange={handleChange}
-            className="col-span-3"
-            required
-          />
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="price" className="text-right">
-            Price
-          </Label>
-          <Input
-            id="price"
-            name="price"
-            type="number"
-            step="0.01"
-            value={item.price}
-            onChange={handleChange}
-            className="col-span-3"
-            required
-          />
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="network" className="text-right">
-            Network
-          </Label>
-          <select
-            id="network"
-            name="network"
-            value={item.network}
-            onChange={handleChange}
-            className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            required
-          >
-            <option value="Ethereum">Ethereum</option>
-            <option value="Polygon">Polygon</option>
-            <option value="Optimism">Optimism</option>
-            <option value="Arbitrum">Arbitrum</option>
-            <option value="Base">Base</option>
-          </select>
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="token" className="text-right">
-            Token
-          </Label>
-          <select
-            id="token"
-            name="token"
-            value={item.token}
-            onChange={handleChange}
-            className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            required
-          >
-            <option value="ETH">ETH</option>
-            <option value="USDC">USDC</option>
-            <option value="USDT">USDT</option>
-            <option value="MATIC">MATIC</option>
-            <option value="DAI">DAI</option>
-          </select>
-        </div>
+        <FormRow
+          label="Title"
+          name="title"
+          value={item.title}
+          onChange={handleChange}
+        />
+        <FormRow
+          label="Description"
+          name="description"
+          value={item.description}
+          onChange={handleChange}
+          textarea
+        />
+        <FormRow
+          label="Price"
+          name="price"
+          value={item.price}
+          onChange={handleChange}
+          type="number"
+        />
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="image" className="text-right">
             Image
           </Label>
           <div className="col-span-3 flex items-center gap-4">
             <div className="relative h-16 w-16 overflow-hidden rounded-md">
-              <Image src={item.image || "/placeholder.svg"} alt="Item preview" fill className="object-cover" />
+              <Image
+                src={item.image || "/placeholder.svg"}
+                alt="Preview"
+                fill
+                className="object-cover"
+              />
             </div>
             <Label
               htmlFor="image-upload"
@@ -326,7 +337,13 @@ function ItemForm({ initialItem, onSubmit, onCancel }: ItemFormProps) {
             >
               <ImageIcon className="mr-2 h-4 w-4" />
               Upload Image
-              <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              <Input
+                id="image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
             </Label>
           </div>
         </div>
@@ -335,9 +352,43 @@ function ItemForm({ initialItem, onSubmit, onCancel }: ItemFormProps) {
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">{initialItem ? "Update Item" : "Add Item"}</Button>
+        <Button type="submit">{initialItem ? "Update" : "Add Item"}</Button>
       </DialogFooter>
     </form>
-  )
+  );
 }
 
+function FormRow({
+  label,
+  name,
+  value,
+  onChange,
+  textarea = false,
+  type = "text",
+}: any) {
+  return (
+    <div className="grid grid-cols-4 items-center gap-4">
+      <Label htmlFor={name} className="text-right">
+        {label}
+      </Label>
+      {textarea ? (
+        <Textarea
+          id={name}
+          name={name}
+          value={value}
+          onChange={onChange}
+          className="col-span-3"
+        />
+      ) : (
+        <Input
+          id={name}
+          name={name}
+          type={type}
+          value={value}
+          onChange={onChange}
+          className="col-span-3"
+        />
+      )}
+    </div>
+  );
+}
