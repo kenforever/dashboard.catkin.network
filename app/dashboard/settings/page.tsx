@@ -10,10 +10,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
+import { RadioGroup, RadioGroupItem, RadioGroupLabel } from "@/components/ui/radio-group"
+
+// 用來隨機生成API Key的函式
+const generateApiKey = () => {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let apiKey = ''
+  for (let i = 0; i < 32; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length)
+    apiKey += charset[randomIndex]
+  }
+  return apiKey
+  
+}
 
 export default function SettingsPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedNetwork, setSelectedNetwork] = useState("ethereum") // State to hold selected network
+  const [apiKey, setApiKey] = useState(generateApiKey()) // State to store the API key
 
   const handleSave = () => {
     setIsLoading(true)
@@ -26,6 +41,15 @@ export default function SettingsPage() {
         description: "Your payment settings have been updated successfully.",
       })
     }, 1000)
+  }
+
+  const handleGenerateNewKey = () => {
+    alert('Generate New APIKEY!!')
+    setApiKey(generateApiKey()) // Generate a new API key
+  }
+
+  const handleShowApiKey = () => {
+    alert(apiKey) // You can customize this to show it in a modal or elsewhere
   }
 
   return (
@@ -49,41 +73,28 @@ export default function SettingsPage() {
               <CardDescription>Configure which blockchain networks you want to accept payments on</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="ethereum" className="flex flex-col space-y-1">
-                  <span>Ethereum</span>
-                  <span className="font-normal text-sm text-muted-foreground">Accept payments on Ethereum Mainnet</span>
-                </Label>
-                <Switch id="ethereum" defaultChecked />
-              </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="polygon" className="flex flex-col space-y-1">
-                  <span>Polygon</span>
-                  <span className="font-normal text-sm text-muted-foreground">Accept payments on Polygon PoS</span>
-                </Label>
-                <Switch id="polygon" defaultChecked />
-              </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="optimism" className="flex flex-col space-y-1">
-                  <span>Optimism</span>
-                  <span className="font-normal text-sm text-muted-foreground">Accept payments on Optimism</span>
-                </Label>
-                <Switch id="optimism" />
-              </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="arbitrum" className="flex flex-col space-y-1">
-                  <span>Arbitrum</span>
-                  <span className="font-normal text-sm text-muted-foreground">Accept payments on Arbitrum One</span>
-                </Label>
-                <Switch id="arbitrum" />
-              </div>
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="base" className="flex flex-col space-y-1">
-                  <span>Base</span>
-                  <span className="font-normal text-sm text-muted-foreground">Accept payments on Base</span>
-                </Label>
-                <Switch id="base" />
-              </div>
+              <RadioGroup value={selectedNetwork} onValueChange={setSelectedNetwork} className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="ethereum" id="ethereum" />
+                  <Label htmlFor="ethereum">Ethereum</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="polygon" id="polygon" />
+                  <Label htmlFor="polygon">Polygon</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="optimism" id="optimism" />
+                  <Label htmlFor="optimism">Optimism</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="arbitrum" id="arbitrum" />
+                  <Label htmlFor="arbitrum">Arbitrum</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="base" id="base" />
+                  <Label htmlFor="base">Base</Label>
+                </div>
+              </RadioGroup>
             </CardContent>
           </Card>
 
@@ -248,25 +259,21 @@ export default function SettingsPage() {
               <div className="grid gap-2">
                 <Label htmlFor="api-key">API Key</Label>
                 <div className="flex gap-2">
-                  <Input id="api-key" type="password" value="sk_test_51NZQpsBqrJ3TG7DoIAIEKA9u5Vr2dJ8KNAL5" readOnly />
-                  <Button variant="outline">Show</Button>
-                  <Button variant="outline">Copy</Button>
+                  <Input id="api-key" type="password" value={apiKey} readOnly />
+                  <Button variant="outline" onClick={handleShowApiKey}>Show</Button>
+                  <Button variant="outline" onClick={() => navigator.clipboard.writeText(apiKey)}>Copy</Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   This is your secret API key. Do not share it with anyone.
                 </p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="webhook-url">Webhook URL</Label>
-                <Input
-                  id="webhook-url"
-                  placeholder="https://your-website.com/webhook"
-                  defaultValue="https://example.com/webhook"
-                />
+                <Button onClick={handleGenerateNewKey} variant="outline">
+                  Generate New API Key
+                </Button>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline">Generate New Key</Button>
+            <CardFooter>
               <Button onClick={handleSave} disabled={isLoading}>
                 {isLoading ? "Saving..." : "Save Changes"}
               </Button>
@@ -277,4 +284,3 @@ export default function SettingsPage() {
     </MainLayout>
   )
 }
-

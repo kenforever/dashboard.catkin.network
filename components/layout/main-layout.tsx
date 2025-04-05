@@ -64,7 +64,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               <div className="h-20 flex items-center justify-center px-6">
                 <Link href="/dashboard" className="flex items-center gap-2">
                   <CreditCard className="h-8 w-8 text-white" />
-                  <span className="font-bold text-2xl text-white">PayGate</span>
+                  <span className="font-bold text-2xl text-white">Catkin</span>
                 </Link>
               </div>
               <div className="flex-1 flex flex-col px-6 py-4 space-y-1">
