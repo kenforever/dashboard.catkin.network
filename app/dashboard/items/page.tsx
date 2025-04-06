@@ -51,7 +51,8 @@ export default function ItemsPage() {
   // ✅ 取得我的商品
   useEffect(() => {
     const fetchProducts = async () => {
-      const token = localStorage.getItem("token") || "";
+      const token = localStorage.getItem("auth_token") || "";
+      console.log("token", token);
       const res = await fetch(
         "https://api.catkin.network/product/my-products",
         {
@@ -78,7 +79,7 @@ export default function ItemsPage() {
 
   // ✅ 新增/修改商品
   const handleAddOrUpdateItem = async (item: Item) => {
-    const token = localStorage.getItem("token") || "";
+    const token = localStorage.getItem("auth_token") || "";
     const isEdit = Boolean(item.id);
 
     const endpoint = isEdit
@@ -120,7 +121,7 @@ export default function ItemsPage() {
 
   // ❌ 刪除商品
   const handleDeleteItem = async (id: string) => {
-    const token = localStorage.getItem("token") || "";
+    const token = localStorage.getItem("auth_token") || "";
     const confirmed = confirm("確定要刪除這個商品嗎？");
     if (!confirmed) return;
 

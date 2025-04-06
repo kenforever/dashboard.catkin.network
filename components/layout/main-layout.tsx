@@ -42,12 +42,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       active: pathname === "/dashboard/transactions",
     },
     {
-      label: "Analytics",
-      icon: BarChart3,
-      href: "/dashboard/analytics",
-      active: pathname === "/dashboard/analytics",
-    },
-    {
       label: "Settings",
       icon: Settings,
       href: "/dashboard/settings",
